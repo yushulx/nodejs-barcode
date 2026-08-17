@@ -17,8 +17,8 @@
             "conditions": [
                 ["OS=='linux'", {
                     "defines": ["LINUX_DBR"],
-                    "cflags": ["-std=c++11", "-DNAPI_CPP_EXCEPTIONS", "-fexceptions"],
-                    "cflags_cc": ["-std=c++11", "-DNAPI_CPP_EXCEPTIONS", "-fexceptions"],
+                    "cflags": ["-std=c++17", "-DNAPI_CPP_EXCEPTIONS", "-fexceptions"],
+                    "cflags_cc": ["-std=c++17", "-DNAPI_CPP_EXCEPTIONS", "-fexceptions"],
                     "ldflags": ["-Wl,-rpath,'$$ORIGIN'"],
                     "libraries": [
                         "-lDynamsoftCore", "-lDynamsoftLicense", "-lDynamsoftCaptureVisionRouter", "-lDynamsoftUtility", "-L../platforms/linux/<(arch)"
@@ -66,8 +66,8 @@
                 }],
                 ["OS=='mac'", {
                     "defines": ["MAC_DBR"],
-                    "cflags": ["-std=c++11", "-DNAPI_CPP_EXCEPTIONS"],
-                    "cflags_cc": ["-std=c++11", "-DNAPI_CPP_EXCEPTIONS"],
+                    "cflags": ["-std=c++17", "-DNAPI_CPP_EXCEPTIONS"],
+                    "cflags_cc": ["-std=c++17", "-DNAPI_CPP_EXCEPTIONS"],
                     "link_settings": {
                         "libraries": [
                             "-Wl,-rpath,@loader_path",
