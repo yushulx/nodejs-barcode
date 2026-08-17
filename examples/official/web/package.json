@@ -1,0 +1,16 @@
+{
+  "name": "dcv-node-web-barcode-reader",
+  "version": "1.0.0",
+  "description": "Web barcode reader service built with Dynamsoft Capture Vision for Node and Express",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "dynamsoft-capture-vision-for-node": "3.2.5002",
+    "dynamsoft-capture-vision-for-node-model": "3.2.5001",
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  }
+}

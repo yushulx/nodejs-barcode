@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js Web Barcode Reader</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #1b1f27;
+      color: #e6e9ef;
+      min-height: 100vh;
+    }
+    header {
+      padding: 20px 32px;
+      background: #12151c;
+      border-bottom: 1px solid #2a3040;
+    }
+    header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+    header p { margin: 6px 0 0; color: #8b93a5; font-size: 13px; }
+    main {
+      display: flex;
+      gap: 24px;
+      padding: 24px 32px;
+      flex-wrap: wrap;
+    }
+    .panel {
+      background: #12151c;
+      border: 1px solid #2a3040;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    #drop-zone {
+      flex: 1 1 480px;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      border: 2px dashed #3a4358;
+      transition: border-color .15s ease;
+      position: relative;
+    }
+    #drop-zone.dragover { border-color: #ff8a00; }
+    #drop-zone canvas { max-width: 100%; max-height: 60vh; display: none; }
+    #drop-zone .hint { color: #8b93a5; font-size: 14px; line-height: 1.8; }
+    #results-panel { flex: 1 1 320px; max-width: 460px; }
+    #results-panel h2 { margin-top: 0; font-size: 16px; }
+    .controls { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+    select, button {
+      background: #1f2531;
+      color: #e6e9ef;
+      border: 1px solid #3a4358;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button.scan {
+      background: #ff8a00;
+      border-color: #ff8a00;
+      color: #12151c;
+      font-weight: 600;
+    }
+    button.scan:disabled { opacity: .5; cursor: default; }
+    #status { color: #8b93a5; font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+    #results { max-height: 52vh; overflow-y: auto; }
+    .barcode-item {
+      border: 1px solid #2a3040;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #171b24;
+      word-break: break-all;
+    }
+    .barcode-item .format {
+      display: inline-block;
+      background: #24304a;
+      color: #7fb2ff;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+    .barcode-item .text { font-size: 14px; }
+    .barcode-item .meta { color: #8b93a5; font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Node.js Web Barcode Reader</h1>
+    <p>Powered by Dynamsoft Capture Vision for Node - decoding runs in a worker-thread pool on the server.</p>
+  </header>
+  <main>
+    <div id="drop-zone" class="panel">
+      <div class="hint">
+        <strong>Drop an image here</strong> or click to browse<br />
+        Supports jpg, png, bmp, gif and tiff
+      </div>
+      <canvas id="canvas"></canvas>
+      <input type="file" id="file-input" accept="image/*" hidden />
+    </div>
+    <div id="results-panel" class="panel">
+      <h2>Results</h2>
+      <div class="controls">
+        <select id="template">
+          <option value="PT_READ_BARCODES">Balanced</option>
+          <option value="PT_READ_BARCODES_SPEED_FIRST">Speed first</option>
+          <option value="PT_READ_BARCODES_READ_RATE_FIRST">Read rate first</option>
+          <option value="PT_READ_SINGLE_BARCODE">Single barcode</option>
+        </select>
+        <button id="sample-btn">Load sample image</button>
+        <button class="scan" id="scan-btn" disabled>Decode</button>
+      </div>
+      <div id="status">Select an image to start.</div>
+      <div id="results"></div>
+    </div>
+  </main>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const canvas = document.getElementById('canvas');
+    const scanBtn = document.getElementById('scan-btn');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    const templateEl = document.getElementById('template');
+    let currentFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) loadFile(fileInput.files[0]); });
+
+    // No barcode image at hand? Fetch the bundled sample and decode it.
+    document.getElementById('sample-btn').addEventListener('click', async () => {
+      const resp = await fetch('sample.png');
+      const blob = await resp.blob();
+      loadFile(new File([blob], 'sample.png', { type: blob.type }));
+    });
+
+    function loadFile(file) {
+      currentFile = file;
+      resultsEl.innerHTML = '';
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0);
+        canvas.style.display = 'block';
+        dropZone.querySelector('.hint').style.display = 'none';
+        scanBtn.disabled = false;
+        statusEl.textContent = `Loaded "${file.name}" (${(file.size / 1024).toFixed(1)} KB). Click Decode.`;
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    scanBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+      scanBtn.disabled = true;
+      statusEl.textContent = 'Decoding on server...';
+      const form = new FormData();
+      form.append('image', currentFile);
+      form.append('template', templateEl.value);
+      try {
+        const resp = await fetch('/api/decode', { method: 'POST', body: form });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || resp.statusText);
+        renderResults(data);
+        drawOverlay(data.barcodes);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        scanBtn.disabled = false;
+      }
+    });
+
+    function renderResults(data) {
+      statusEl.textContent = data.count
+        ? `Found ${data.count} barcode(s) in ${data.elapsedTime} ms.`
+        : `No barcode found (${data.elapsedTime} ms).`;
+      resultsEl.innerHTML = data.barcodes.map(b => `
+        <div class="barcode-item">
+          <span class="format">${b.format}</span>
+          <div class="text">${escapeHtml(b.text)}</div>
+          <div class="meta">Confidence: ${b.confidence}</div>
+        </div>`).join('');
+    }
+
+    function drawOverlay(barcodes) {
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        ctx.lineWidth = Math.max(3, canvas.width / 300);
+        ctx.strokeStyle = '#00e676';
+        ctx.fillStyle = '#00e676';
+        ctx.font = `${Math.max(16, canvas.width / 50)}px sans-serif`;
+        for (const b of barcodes) {
+          const pts = b.location;
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.fillText(b.format, pts[0].x, Math.max(20, pts[0].y - 8));
+        }
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(currentFile);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+  </script>
+</body>
+</html>
