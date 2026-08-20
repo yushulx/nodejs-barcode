@@ -1,0 +1,14 @@
+{
+  "name": "dcv-node-pdf-barcode-reader",
+  "version": "1.0.0",
+  "description": "Read 1D/2D barcodes from multi-page PDF files with Dynamsoft Capture Vision for Node",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "dynamsoft-capture-vision-for-node": "3.2.5002",
+    "dynamsoft-capture-vision-for-node-model": "3.2.5001"
+  }
+}
