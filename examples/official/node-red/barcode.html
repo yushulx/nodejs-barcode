@@ -5,7 +5,7 @@
         defaults: {
             name: {value:""},
             license: {value:""},
-            template: {value: ""}
+            template: {value: "PT_READ_BARCODES"}
         },
         inputs:1,
         outputs:1,
@@ -27,10 +27,16 @@
     </div>
     <div class="form-row">
 		<label for="node-input-template"><i class="icon-tag"></i> Template</label>
-		<input type="text" id="node-input-template" placeholder="https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html?ver=latest">
+		<select type="text" id="node-input-template" style="width:70%">
+            <option value="PT_READ_BARCODES" style="width:70%">PT_READ_BARCODES (default)</option>
+            <option value="PT_READ_BARCODES_SPEED_FIRST" style="width:70%">PT_READ_BARCODES_SPEED_FIRST</option>
+            <option value="PT_READ_BARCODES_READ_RATE_FIRST" style="width:70%">PT_READ_BARCODES_READ_RATE_FIRST</option>
+            <option value="PT_READ_SINGLE_BARCODE" style="width:70%">PT_READ_SINGLE_BARCODE</option>
+        </select>
 	</div>
 </script>
 
 <script type="text/x-red" data-help-name="barcode">
-    <p>A simple node that read barcodes from image files.</p>
+    <p>Read barcodes and QR codes from image files (PNG, JPG, BMP, GIF), PDF and TIFF documents, or base64 strings using Dynamsoft Capture Vision.</p>
+    <p>Output payload: an array of objects, each with <code>page</code>, <code>format</code>, <code>text</code>, <code>confidence</code>, and <code>location</code>.</p>
 </script>
