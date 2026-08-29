@@ -4,7 +4,7 @@
   "description": "The demo illustrates how to create an online barcode reader with Dynamsoft Barcode Reader SDK and Node.js",
   "main": "server.js",
   "dependencies": {
-    "express": "^4.21.2",
+    "express": "^4.22.1",
     "formidable": "^3.2.4"
   },
   "author": "yushulx",
